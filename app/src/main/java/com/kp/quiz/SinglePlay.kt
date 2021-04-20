@@ -27,14 +27,16 @@ class SinglePlay : AppCompatActivity() {
     private var questionCounter = 0
     private lateinit var questionsFetcher: QuestionsFetcher
     private lateinit var timeleftBar: ProgressBar
-
+    private lateinit var mediaPlayerError: MediaPlayer
+    private lateinit var mediaPlayerCorrect: MediaPlayer
     private lateinit var timer : CountDownTimer
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_single_play)
-
+        mediaPlayerError =  MediaPlayer.create(this, R.raw.error)
+        mediaPlayerCorrect = MediaPlayer.create(this, R.raw.correct_answer_sound)
         answerViews = arrayOf(
             AnswerView(findViewById(R.id.answerA_text),findViewById(R.id.answerA_button)),
             AnswerView(findViewById(R.id.answerB_text),findViewById(R.id.answerB_button)),
@@ -64,21 +66,23 @@ class SinglePlay : AppCompatActivity() {
         questionText.text = decode(questionsFetcher.questions[questionCounter].question)
 
         answerViews[0].textView.text = decode(questionsFetcher.questions[questionCounter].correct_answer)
-        answerViews[0].button.setOnClickListener() { view ->
-
+        answerViews[0].button.setOnClickListener() {
             answerViews[0].button.setBackgroundColor(Color.GREEN)
             answerViews[0].button.setTextColor(Color.WHITE)
-            onCorrectAnswerClicked(view)
+            answerViews[0].button.isClickable = false
+            onCorrectAnswerClicked( mediaPlayerCorrect)
         }
+
         for(i in 1..3){
             answerViews[i].textView.text = decode(questionsFetcher.questions[questionCounter].incorrect_answers[i-1])
+
             answerViews[i].button.setOnClickListener {
-                    view ->
 
                 answerViews[i].button.setBackgroundColor(Color.RED)
                 answerViews[i].button.setTextColor(Color.WHITE)
-                val mediaPlayer = MediaPlayer.create(this, R.raw.error)
-                onIncorrectAnswerClicked(view, mediaPlayer)
+                answerViews[i].button.isClickable = false
+
+                onIncorrectAnswerClicked(mediaPlayerError)
             }
         }
         answerViews.forEach { answerView ->
@@ -105,7 +109,7 @@ class SinglePlay : AppCompatActivity() {
 
     }
     private fun decode(txt: String): Spanned = Html.fromHtml(txt, Html.FROM_HTML_MODE_COMPACT)
-    private fun onCorrectAnswerClicked(view: View?){
+    private fun onCorrectAnswerClicked(mediaPlayer: MediaPlayer){
         timer.cancel()
         val animation = AnimationUtils.loadAnimation(
             this, R.anim.slide_down)
@@ -122,16 +126,26 @@ class SinglePlay : AppCompatActivity() {
             }
         })
         correctTextView.startAnimation(animation)
+        if (mediaPlayer.isPlaying) {
+            mediaPlayer.stop()
+            mediaPlayer.prepare()
+        }
+        mediaPlayer.start()
 
+    }
+    private fun onIncorrectAnswerClicked(mediaPlayer: MediaPlayer){
+        if (mediaPlayer.isPlaying) {
+            mediaPlayer.stop()
+            mediaPlayer.prepare()
+        }
+        mediaPlayer.start()
 
     }
     private fun nextQuestion(){
         questionCounter++
         if (questionCounter < questionsFetcher.questions.size) displayCurrentQuestion()
     }
-    private fun onIncorrectAnswerClicked(view: View?, mediaPlayer: MediaPlayer){
-        mediaPlayer.start()
-    }
+
     private fun showLoading(){
         answerViews.forEach { answerView ->
             answerView.button.visibility = View.GONE
