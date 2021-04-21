@@ -1,5 +1,6 @@
 package com.kp.quiz
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -39,7 +40,10 @@ class CategoryMenu : AppCompatActivity() {
 
         showLoading()
     }
-
+    override fun onBackPressed() {
+        val intent = Intent(this, MainActivity::class.java)
+        startActivity(intent)
+    }
     private fun showLoading(){
         recyclerView.visibility = View.GONE
         progressBar.visibility = View.VISIBLE

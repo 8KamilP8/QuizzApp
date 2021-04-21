@@ -1,5 +1,6 @@
 package com.kp.quiz
 
+import android.content.Intent
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Build
@@ -14,6 +15,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.kp.quiz.Data.QuizResult
 import java.util.*
 
 
@@ -30,6 +32,8 @@ class SinglePlay : AppCompatActivity() {
     private lateinit var mediaPlayerError: MediaPlayer
     private lateinit var mediaPlayerCorrect: MediaPlayer
     private lateinit var timer : CountDownTimer
+
+    private var quizResult: QuizResult = QuizResult(0,0)
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,10 +103,10 @@ class SinglePlay : AppCompatActivity() {
         timeleftBar.max = 10000
         timer = object: CountDownTimer(10000, 1) {
             override fun onTick(millisUntilFinished: Long) {
-                timeleftBar.progress = 10000 - millisUntilFinished.toInt()
+                timeleftBar.progress = millisUntilFinished.toInt()
             }
             override fun onFinish() {
-                nextQuestion()
+                onIncorrectAnswerClicked(mediaPlayerError)
             }
         }
         timer.start()
@@ -110,6 +114,16 @@ class SinglePlay : AppCompatActivity() {
     }
     private fun decode(txt: String): Spanned = Html.fromHtml(txt, Html.FROM_HTML_MODE_COMPACT)
     private fun onCorrectAnswerClicked(mediaPlayer: MediaPlayer){
+        correctTextView.text = getString(R.string.correct)
+        quizResult.correctAnswers += 1
+        onAnswerClicked(mediaPlayer)
+    }
+    private fun onIncorrectAnswerClicked(mediaPlayer: MediaPlayer){
+        quizResult.incorrectAnswers += 1
+        correctTextView.text = getString(R.string.incorrect_answer)
+        onAnswerClicked(mediaPlayer)
+    }
+    private fun onAnswerClicked(mediaPlayer: MediaPlayer){
         timer.cancel()
         val animation = AnimationUtils.loadAnimation(
             this, R.anim.slide_down)
@@ -117,6 +131,8 @@ class SinglePlay : AppCompatActivity() {
         animation.setAnimationListener(object : Animation.AnimationListener {
             override fun onAnimationStart(p0: Animation?) {
                 answerViews.forEach { answerView -> answerView.button.isClickable = false }
+                answerViews[0].button.setBackgroundColor(Color.GREEN)
+                answerViews[0].button.setTextColor(Color.WHITE)
             }
 
             override fun onAnimationRepeat(p0: Animation?) {}
@@ -131,21 +147,20 @@ class SinglePlay : AppCompatActivity() {
             mediaPlayer.prepare()
         }
         mediaPlayer.start()
-
-    }
-    private fun onIncorrectAnswerClicked(mediaPlayer: MediaPlayer){
-        if (mediaPlayer.isPlaying) {
-            mediaPlayer.stop()
-            mediaPlayer.prepare()
-        }
-        mediaPlayer.start()
-
     }
     private fun nextQuestion(){
         questionCounter++
         if (questionCounter < questionsFetcher.questions.size) displayCurrentQuestion()
+        else showResult()
     }
 
+    private fun showResult(){
+        val intent = Intent(this, QuizResultActivity::class.java).apply {
+            putExtra(getString(R.string.correct_answer_result), quizResult.correctAnswers)
+            putExtra(getString(R.string.incorrect_answer_result), quizResult.incorrectAnswers)
+        }
+        startActivity(intent)
+    }
     private fun showLoading(){
         answerViews.forEach { answerView ->
             answerView.button.visibility = View.GONE
